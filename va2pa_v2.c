@@ -296,17 +296,17 @@ int va2pa(
     uint64_t *phys_addr // since PAE translations produce 52-bit physical address
 ) {
     if (level > 3 || level < 2) { // Return error if a wrong level is given
-        #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
             printerr(ST_INCORRECT_LEVEL_32);
-        #endif
+#endif
 
         return ST_INCORRECT_LEVEL_32;
     }
     
-    #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
         uint32_t void_ptr_token_32 = 0;
         uint64_t void_ptr_token_64 = 0;
-    #endif
+#endif
 
     if (level == 2) {
         // BEGINNING OF LEVEL 2 LEGACY TRANSLATION
@@ -319,11 +319,12 @@ int va2pa(
 
         // reading pde data from RAM
         if ((*read_func)(pde, sizeof(uint32_t), pde_addr) < sizeof(uint32_t)) {
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(ST_RAM_READ_ERROR_32);
                 printf(" at addr: 0x%08x bytes to read: %lu\n", pde_addr, sizeof(uint32_t));
-            #endif
+#endif
 
+            free(pde);
             return ST_RAM_READ_ERROR_32;
         }
 
@@ -346,12 +347,13 @@ int va2pa(
         // if pde is somehow corrupt
         if (PDEIntegrityCheck != ST_SUCCESS_32) {
             // print error and return error code
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(PDEIntegrityCheck);
                 printf(" pde: ");
                 printbits((uint64_t) *pde, sizeof(uint32_t));
-            #endif
+#endif
             
+            free(pde);
             return PDEIntegrityCheck;
         }
 
@@ -368,11 +370,12 @@ int va2pa(
 
             // reading pte data from RAM
             if ((*read_func)(pte, sizeof(uint32_t), pte_addr) < sizeof(uint32_t)) {
-                #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                     printerr(ST_RAM_READ_ERROR_32);
                     printf(" at addr: 0x%08x bytes to read: %lu\n", pte_addr, sizeof(uint32_t));
-                #endif
+#endif
 
+                free(pte);
                 return ST_RAM_READ_ERROR_32;
             }
             
@@ -387,12 +390,13 @@ int va2pa(
             // if pte is somehow corrupt
             if (PTEIntegrityCheck != ST_SUCCESS_32) {
                 // print error and return error code
-                #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                     printerr(PTEIntegrityCheck);
                     printf(" pte: ");
                     printbits((uint64_t) *pte, sizeof(uint32_t));
-                #endif
+#endif
 
+                free(pte);
                 return PTEIntegrityCheck;
             }
             
@@ -419,11 +423,12 @@ int va2pa(
 
         // Reading pdpte data from memory
         if ((*read_func)(pdpte, sizeof(uint64_t), pdpte_addr) < sizeof(uint64_t)) {
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(ST_RAM_READ_ERROR_32);
                 printf(" at addr: 0x%08llx bytes to read: %lu\n", pdpte_addr, sizeof(uint64_t));
-            #endif
+#endif
 
+            free(pdpte);
             return ST_RAM_READ_ERROR_32;
         }
         
@@ -440,12 +445,13 @@ int va2pa(
         // if pdpte is somehow corrupt
         if (PDPTEIntegrityCheck != ST_SUCCESS_32) {
             // display an error message and return error code
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(PDPTEIntegrityCheck);
                 printf(" pdpte: ");
                 printbits(*pdpte, sizeof(uint64_t));
-            #endif
+#endif
             
+            free(pdpte);
             return PDPTEIntegrityCheck;
         }
 
@@ -458,11 +464,12 @@ int va2pa(
 
         // Reading PDE data from memory
         if ((*read_func)(pde_pae, sizeof(uint64_t), pde_addr_pae) < sizeof(uint64_t)) {
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(ST_RAM_READ_ERROR_32);
                 printf(" at addr: 0x%08llx bytes to read: %lu\n", pde_addr_pae, sizeof(uint64_t));
-            #endif
+#endif
 
+            free(pde_pae);
             return ST_RAM_READ_ERROR_32;
         }
 
@@ -487,12 +494,13 @@ int va2pa(
         // If PDE is somehow corrupt
         if (PDEIntegrityCheckPAE != ST_SUCCESS_32) {
             // Display an error message and return error code
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(PDEIntegrityCheckPAE);
                 printf(" pde: ");
                 printbits(*pde_pae, sizeof(uint64_t));
-            #endif
+#endif
 
+            free(pde_pae);
             return PDEIntegrityCheckPAE;
         }
 
@@ -509,11 +517,12 @@ int va2pa(
 
             // Reading PTE data from memory
             if ((*read_func)(pte_pae, sizeof(uint64_t), pte_addr_pae) < sizeof(uint64_t)) {
-                #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                     printerr(ST_RAM_READ_ERROR_32);
                     printf(" at addr: 0x%08llx bytes to read: %lu\n", pte_addr_pae, sizeof(uint64_t));
-                #endif
+#endif
                 
+                free(pte_pae);
                 return ST_RAM_READ_ERROR_32;
             }
 
@@ -534,21 +543,22 @@ int va2pa(
             // If PTE is somehow corrupt
             if (PTEIntegrityCheckPAE != ST_SUCCESS_32) {
                 // Dispaly an error message and return error code
-                #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                     printerr(PTEIntegrityCheckPAE);
                     printf(" pte: ");
                     printbits(*pte_pae, sizeof(uint64_t));
-                #endif
+#endif
                 
+                free(pte_pae);
                 return PTEIntegrityCheckPAE;
             }
 
             // Display a warning if a dirty bit is set
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 if (!(*pte_pae & (1 << PTEBitsPAE.dirty))) {
                     printf("WARNING: PTE dirty bit is set\n");
                 }
-            #endif
+#endif
             
             // Unsetting 12 least significant bits
             // And adding offset from virtual address
@@ -574,10 +584,10 @@ uint8_t va2pa_64(
     const PREAD_FUNC_64 read_func_64, 
     uint64_t *phys_addr_64
 ) {
-    #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
         uint32_t void_ptr_token_32 = 0;
         uint64_t void_ptr_token_64 = 0;
-    #endif
+#endif
 
     // Init buffer to read PML4E data from memory
     uint64_t* pml4e = malloc(sizeof(uint64_t));
@@ -587,11 +597,13 @@ uint8_t va2pa_64(
 
     // Reading pml4e data from memory
     if ((*read_func_64)(pml4e, sizeof(uint64_t), pml4e_addr) < sizeof(uint64_t)) {
-        #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
             printerr(ST_RAM_READ_ERROR_32);
             printf(" at addr: 0x%08llx bytes to read: %lu\n", pml4e_addr, sizeof(uint64_t));
+#endif
+            free(pml4e);
             return ST_RAM_READ_ERROR_32;
-        #endif
+        
     }
 
     TranslationState32 PML4EIntegrityCheck = ST_SUCCESS_32;
@@ -607,12 +619,13 @@ uint8_t va2pa_64(
     // If PDE is somehow corrupt
     if (PML4EIntegrityCheck != ST_SUCCESS_32) {
         // Display an error message and return error code
-        #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
             printerr(PML4EIntegrityCheck);
             printf(" pde: ");
             printbits(*pml4e, sizeof(uint64_t));
-        #endif
+#endif
         
+        free(pml4e);
         return PML4EIntegrityCheck;
     }
 
@@ -625,11 +638,12 @@ uint8_t va2pa_64(
 
     // Reading pdpte data from memory
     if ((*read_func_64)(pdpte, sizeof(uint64_t), pdpte_addr) < sizeof(uint64_t)) {
-        #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
             printerr(ST_RAM_READ_ERROR_32);
             printf(" at addr: 0x%08llx bytes to read: %lu\n", pdpte_addr, sizeof(uint64_t));
-        #endif
+#endif
         
+        free(pdpte);
         return ST_RAM_READ_ERROR_32;
     }
 
@@ -648,12 +662,13 @@ uint8_t va2pa_64(
     // if pdpte is somehow corrupt
     if (PDPTEIntegrityCheck != ST_SUCCESS_32) {
         // display an error message and return error code
-        #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
             printerr(PDPTEIntegrityCheck);
             printf(" pdpte: ");
             printbits(*pdpte, sizeof(uint64_t));
-        #endif
+#endif
         
+        free(pdpte);
         return PDPTEIntegrityCheck;
     }
 
@@ -670,11 +685,12 @@ uint8_t va2pa_64(
 
         // Reading PDE data from memory
         if ((*read_func_64)(pde_64, sizeof(uint64_t), pde_addr_64) <= 0) {
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(ST_RAM_READ_ERROR_32);
                 printf(" at addr: 0x%08llx bytes to read: %lu\n", pde_addr_64, sizeof(uint64_t));
-            #endif
+#endif
             
+            free(pde_64);
             return ST_RAM_READ_ERROR_32;
         }
 
@@ -699,12 +715,13 @@ uint8_t va2pa_64(
         // If PDE is somehow corrupt
         if (PDEIntegrityCheckPAE != ST_SUCCESS_32) {
             // Display an error message and return error code
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 printerr(PDEIntegrityCheckPAE);
                 printf(" pde: ");
                 printbits(*pde_64, sizeof(uint64_t));
-            #endif
+#endif
 
+            free(pde_64);
             return PDEIntegrityCheckPAE;
         }
 
@@ -721,11 +738,12 @@ uint8_t va2pa_64(
 
             // Reading PTE data from memory
             if ((*read_func_64)(pte_64, sizeof(uint64_t), pte_addr_64) < sizeof(uint64_t)) {
-                #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                     printerr(ST_RAM_READ_ERROR_32);
                     printf(" at addr: 0x%08llx bytes to read: %lu\n", pte_addr_64, sizeof(uint64_t));
-                #endif
+#endif
 
+                free(pte_64);
                 return ST_RAM_READ_ERROR_32;
             }
 
@@ -746,21 +764,22 @@ uint8_t va2pa_64(
             // If PTE is somehow corrupt
             if (PTEIntegrityCheckPAE != ST_SUCCESS_32) {
                 // Dispaly an error message and return error code
-                #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                     printerr(PTEIntegrityCheckPAE);
                     printf(" pte: ");
                     printbits(*pte_64, sizeof(uint64_t));
-                #endif
+#endif
 
+                free(pte_64);
                 return PTEIntegrityCheckPAE;
             }
 
             // Display a warning if a dirty bit is set
-            #ifdef VA2PA_DEBUG_ON
+#ifdef VA2PA_DEBUG_ON
                 if (!(*pte_64 & (1 << PTEBitsPAE.dirty))) {
                     printf("WARNING: PTE dirty bit is set\n");
                 }
-            #endif
+#endif
 
             // Unsetting 12 least significant bits
             // And adding offset from virtual address
